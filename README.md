@@ -16,3 +16,9 @@
 > to 'catch' and respond to access violations. This is implemented in `DumbRandom.cpp` as the `Guard()` method.
 >
 > Due to this hack, it may not work on some compilers, systems, builds, etc. Use at your own risk!
+
+## Efficiency
+**NOT EFFICIENT** -- may not even generate one number in a year due to picking a memory location at random.
+64-bit systems have around 1.8e+19 possible addresses, so the odds of it picking a valid one are slim to none.
+
+If you would like to contribute to this inefficiency (or try to make it efficient), please do so!
