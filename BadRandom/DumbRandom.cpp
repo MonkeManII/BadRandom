@@ -11,59 +11,58 @@ static void SignalHandler(int signal)
 {
 	throw "!Access Violation!";
 }
+static PseudoRandom* random = nullptr;
 
 // prevents access violations from being thrown using black magic. might not work depending on compiler :)
 static void Guard() { previousHandler = signal(SIGSEGV, SignalHandler); }
+static void UnGuard() { previousHandler = signal(SIGSEGV, SIG_DFL); }
 
-void DumbRandom::RandomizePtr() {
+char* DumbRandom::RandomPtr() {
+	if (random == nullptr) random = new PseudoRandom(0, 255);
+
 	bool succ = false;
-	PseudoRandom* rand = new PseudoRandom(0, 255);
+	char* r = nullptr;
 	while (!succ) {
-
-		char scratch[sizeof(void*)] = {};
+		unsigned char scratch[sizeof(void*)] = {};
 		for (unsigned int i = 0; i < sizeof(void*); ++i) {
-			scratch[i] = (char)rand->Next();
+			scratch[i] = (unsigned char)random->Next();
 		}
 
-		curPtr = (void*)scratch;
+		r = *(char**)scratch;
 
 		Guard();
 		try {
-			char _ = *(char*)curPtr;
+			char _ = *r;
 			succ = true;
 		} catch(...) { }
+		UnGuard();
 	}
-	delete rand;
+	return r;
 }
 
-DumbRandom::DumbRandom(int min, int max) : min(min), max(max) {
-	RandomizePtr();
-	
-	// okay, at this point curPtr points to a space in memory
-	// that is probably fine to read from.
-
-	// we use that "probably" for its "probability" :)
-}
+DumbRandom::DumbRandom(int min, int max) : min(min), max(max) { }
 
 int DumbRandom::Next() {
 	int count = 0;
 
-	while (count <= 0) {
-		Guard();
+	char* ptr = RandomPtr();
+
+	Guard();
+	while (true) {
 		try {
 			while (true) {
 				// this is where it will error.
 				// this is bad design. don't do this in prod code.
 				// please.
 				++count;
-				char _ = *((char*)curPtr + count);
+				char _ = *(ptr + count);
 			}
 		}
 		// this is suboptimal code, buuuuuuuuuuut thats the point.
-		catch (...) {
-			curPtr = (void*)((char*)curPtr + count);
-		}
+		catch (...) { if (count > 0) break; }
 	}
-	RandomizePtr();
+
+	UnGuard();
+	
 	return (count % (max - min)) + min;
 }

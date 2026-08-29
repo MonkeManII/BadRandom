@@ -9,10 +9,9 @@ public:
 	int Next();
 
 private:
-	void* curPtr;
 	const int max;
 	const int min;
-	void RandomizePtr();
+	char* RandomPtr();
 };
 
 #endif
